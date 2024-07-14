@@ -3,10 +3,15 @@ import os
 
 import aws_cdk as cdk
 
-from event_driven_etl_pipeline.event_driven_etl_pipeline_stack import EventDrivenEtlPipelineStack
+from compute_stack.compute_stack import ComputeStack
+from storage_stack.storage_stack import StorageStack
+from integration_stack.integration_stack import IntegrationStack
 
 
 app = cdk.App()
-EventDrivenEtlPipelineStack(app, "EventDrivenEtlPipelineStack")
+
+ComputeStack(app, "ComputeStack")
+StorageStack(app, "StorageStack")
+IntegrationStack(app, "IntegrationStack")
 
 app.synth()
