@@ -14,9 +14,9 @@ class GlueStack(Stack):
         self,
         scope: Construct,
         construct_id: str,
-        raw_bucket: s3.IBucket,
-        raw_kms_key: kms.IKey,
-        **kwargs,
+        raw_s3_bucket: s3.IBucket,
+        raw_s3_kms_key: kms.IKey,
+        **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -25,7 +25,7 @@ class GlueStack(Stack):
             self,
             "TestGlueDatabase",
             catalog_id=self.account,
-            database_name=glue.CfnDatabase.DatabaseInputProperty(
+            database_input=glue.CfnDatabase.DatabaseInputProperty(
                 name="test-raw-database"
             ),
         )
@@ -52,10 +52,10 @@ class GlueStack(Stack):
         )
 
         # Grant the Glue Crawler permissions to use the KMS key
-        raw_kms_key.grant_decrypt(glue_crawler_role)
+        raw_s3_kms_key.grant_decrypt(glue_crawler_role)
 
         # Grant the Glue Crawler permissions to access the S3 bucket
-        raw_bucket.grant_read_write(glue_crawler_role)
+        raw_s3_bucket.grant_read_write(glue_crawler_role)
 
         # Glue Crawler
         glue_crawler = glue.CfnCrawler(
@@ -66,7 +66,7 @@ class GlueStack(Stack):
             role=glue_crawler_role.role_name,
             targets={
                 "s3Targets": [
-                    {"path": f"s3://{raw_bucket.bucket_name}"},
+                    {"path": f"s3://{raw_s3_bucket.bucket_name}"},
                 ]
             },
         )

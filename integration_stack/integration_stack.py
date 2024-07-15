@@ -23,7 +23,16 @@ class IntegrationStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # SNS Topic
-        topic = sns.Topic(self, "ETLTopic")
-        topic.add_subscription(
+        test_topic = sns.Topic(
+            self,
+            "TestGlueCrawlComplTopic",
+            display_name="TestGlueCrawlComplTopic",
+            topic_name="TestGlueCrawlComplTopic",
+            signature_version="2",
+        )
+
+        test_topic.add_subscription(
             subscriptions.EmailSubscription("adaptivecreature1864@gmail.com")
         )
+
+        #  topic_action =

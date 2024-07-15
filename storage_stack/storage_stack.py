@@ -1,23 +1,14 @@
-from aws_cdk import Stack, aws_s3 as s3, aws_iam as iam, Duration, aws_kms as kms
+from aws_cdk import Stack, aws_s3 as s3, Duration, aws_kms as kms, Fn
 from constructs import Construct
 
 
 class StorageStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, raw_s3_kms_key: kms.IKey, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         #  Make suffix for S3 buckets
         suffix = self.__initialize_suffix()
-
-        #  Make KMS key for raw S3 bucket
-        self.raw_bucket_kms_key = kms.Key(
-            self,
-            "RawBucketKey",
-            enable_key_rotation=True,
-            rotation_period=Duration.days(90),
-        )
-        self.raw_bucket_kms_key.add_alias("alias/test-s3-raw-encryption")
 
         # S3 Raw Bucket
         self.raw_bucket = s3.Bucket(
@@ -27,7 +18,7 @@ class StorageStack(Stack):
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             enforce_ssl=True,
-            encryption_key=self.raw_bucket_kms_key,
+            encryption_key=raw_s3_kms_key,
             lifecycle_rules=[
                 s3.LifecycleRule(
                     transitions=[
@@ -43,3 +34,8 @@ class StorageStack(Stack):
                 )
             ],
         )
+
+    def __initialize_suffix(self):
+        short_stack_id = Fn.select(2, Fn.split("/", self.stack_id))
+        suffix = Fn.select(4, Fn.split("-", short_stack_id))
+        return suffix

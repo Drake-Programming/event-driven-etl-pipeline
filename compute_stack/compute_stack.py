@@ -22,18 +22,18 @@ class ComputeStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # Lambda Function
-        glue_lambda_function = _lambda.Function(
+        self.glue_lambda_function = _lambda.Function(
             self,
             "ETLTriggerFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             code=_lambda.Code.from_asset("compute_stack"),
             handler="s3_to_glue.handler",
-            environment={"GLUE_CRAWLER_NAME": "YourGlueCrawlerName"},
+            environment={"GLUE_CRAWLER_NAME": "raw-crawler"},
         )
 
         # Grant Lambda permissions to use the KMS key
-        raw_s3_kms_key.grant_encrypt_decrypt(glue_lambda_function)
+        raw_s3_kms_key.grant_encrypt_decrypt(self.glue_lambda_function)
 
         # S3 Event Notification
-        notification = s3_notifications.LambdaDestination(glue_lambda_function)
+        notification = s3_notifications.LambdaDestination(self.glue_lambda_function)
         raw_s3_bucket.add_event_notification(s3.EventType.OBJECT_CREATED, notification)
