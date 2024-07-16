@@ -2,7 +2,7 @@ from aws_cdk import Stack, Duration, aws_kms as kms
 from constructs import Construct
 
 
-class SecurityStack(Stack):
+class KmsStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -15,4 +15,3 @@ class SecurityStack(Stack):
             rotation_period=Duration.days(90),
         )
         self.raw_bucket_kms_key.add_alias("alias/test-s3-raw-encryption")
-

@@ -4,7 +4,9 @@ from constructs import Construct
 
 class StorageStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, raw_s3_kms_key: kms.IKey, **kwargs) -> None:
+    def __init__(
+        self, scope: Construct, construct_id: str, raw_s3_kms_key: kms.IKey, **kwargs
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         #  Make suffix for S3 buckets
