@@ -1,17 +1,13 @@
-from aws_cdk import Stack, Duration, aws_kms as kms
+from aws_cdk import Stack, aws_s3 as s3, aws_s3_notifications as s3_notifications, aws_sqs as sqs
 from constructs import Construct
 
 
 class KmsStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, raw_s3_bucket: s3.IBucket, crawler_queue: sqs.Queue, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        #  Make KMS key for raw S3 bucket
-        self.raw_bucket_kms_key = kms.Key(
-            self,
-            "RawBucketKey",
-            enable_key_rotation=True,
-            rotation_period=Duration.days(90),
+        # Add Test notification configuration to send events to SQS queue
+        raw_s3_bucket.add_event_notification(
+            s3.EventType.OBJECT_CREATED_PUT, s3_notifications.SqsDestination(crawler_queue)
         )
-        self.raw_bucket_kms_key.add_alias("alias/test-s3-raw-encryption")

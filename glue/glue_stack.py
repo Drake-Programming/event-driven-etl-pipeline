@@ -3,6 +3,7 @@ from aws_cdk import (
     aws_glue as glue,
     aws_iam as iam,
     aws_s3 as s3,
+    aws_sqs as sqs,
     aws_kms as kms,
 )
 from constructs import Construct
@@ -14,8 +15,9 @@ class GlueStack(Stack):
         self,
         scope: Construct,
         construct_id: str,
-        raw_s3_kms_key: kms.IKey,
         raw_s3_bucket: s3.IBucket,
+        crawler_queue: sqs.Queue,
+        queue_key: kms.IKey,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -29,34 +31,40 @@ class GlueStack(Stack):
                 name="test-raw-database"
             ),
         )
-
-        self.crawler_s3_role = iam.Role(
+        # Crawler Role
+        self.raw_crawler_role = iam.Role(
             self,
-            "CrawlerS3Role",
+            "RawCrawlerRole",
             assumed_by=iam.ServicePrincipal("glue.amazonaws.com"),
-            description="Crawler S3 Role",
-            role_name="CrawlerS3Role",
+            description="Raw Bucket Crawler Role",
+            role_name="RawCrawlerRole",
         )
 
-        # Grant the Glue Crawler permissions to use the KMS key
-        raw_s3_kms_key.grant_decrypt(self.crawler_s3_role)
         # Grant the Glue Crawler permissions to access the S3 bucket
-        raw_s3_bucket.grant_read(self.crawler_s3_role)
+        raw_s3_bucket.grant_read(self.raw_crawler_role)
+
+        #  Grant Glue Crawler permission to consume messages from SQS queue
+        crawler_queue.grant_consume_messages(self.raw_crawler_role)
+
+        queue_key.grant_decrypt(self.raw_crawler_role)
 
         # Glue Crawler
         self.raw_glue_crawler = glue.CfnCrawler(
             self,
-            "raw-crawler",
-            name="raw-crawler",
+            "RawBucketCrawler",
+            name="RawBucketCrawler",
             description="Crawl the data in the test raw bucket",
             database_name=self.glue_database.database_input.name,
-            role=self.crawler_s3_role.role_name,
+            role=self.raw_crawler_role.role_name,
             recrawl_policy=glue.CfnCrawler.RecrawlPolicyProperty(
                 recrawl_behavior="CRAWL_EVENT_MODE"
             ),
             targets={
                 "s3Targets": [
-                    {"path": f"s3://{raw_s3_bucket.bucket_name}"},
+                    glue.CfnCrawler.S3TargetProperty(
+                        event_queue_arn=crawler_queue.queue_arn,
+                        path=f"s3://{raw_s3_bucket.bucket_name}",
+                    )
                 ]
             },
         )
